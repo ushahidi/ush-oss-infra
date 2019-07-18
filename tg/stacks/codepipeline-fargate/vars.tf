@@ -16,11 +16,20 @@ variable "ecs_cluster_name" { default = "fargate" }
 variable "artifacts_bucket_name" {  default = "default" }
 
 variable "github_repo_config" { type = "map" }
-variable "github_oauth_token_name"  { default = "GitHub" }
+variable "github_oauthtoken"  { }
 
 variable "build_timeout"  { default = 30 }   # this is minutes
 
 variable "container_name" { default = "service" }
+variable "container_port" { default = "80" }
+variable "container_environment" {
+  type = list
+  default = []
+}
+variable "container_environment_secrets" {
+  type = list
+  default = []
+}
 
 variable "keep_n_last_images" {
   type = number

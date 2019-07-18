@@ -27,6 +27,29 @@ resource "aws_iam_role_policy" "codepipeline" {
         "codebuild:StartBuild"
       ],
       "Resource": "*"
+    },
+    {
+      "Action": [
+        "ecs:Describe*",
+        "ecs:CreateTaskSet",
+        "ecs:RegisterTaskDefinition",
+        "ecs:UpdateService",
+        "ecs:UpdateServicePrimaryTaskSet",
+        "ecs:DeleteTaskSet",
+        "elasticloadbalancing:DescribeTargetGroups",
+        "elasticloadbalancing:DescribeListeners",
+        "elasticloadbalancing:DescribeRules",
+        "cloudwatch:DescribeAlarms"
+      ],
+      "Resource": "*",
+      "Effect": "Allow"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": [
+        "${aws_iam_role.fargate.arn}"
+      ]
     }
   ]
 }
@@ -57,6 +80,7 @@ resource "aws_codepipeline" "main" {
       configuration = merge(
         var.github_repo_config,
         {
+          OAuthToken = var.github_oauthtoken
           PollForSourceChanges = "false"
         }
       )

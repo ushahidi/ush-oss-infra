@@ -31,6 +31,13 @@ resource "aws_iam_role_policy" "codebuild" {
         "ec2:DescribeVpcs"
       ],
       "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetAuthorizationToken"
+      ],
+      "Resource": "*"
     }
   ]
 }
@@ -54,8 +61,9 @@ resource "aws_codebuild_project" "main" {
 
   environment {
     compute_type = "BUILD_GENERAL1_SMALL"
-    image = "aws/codebuild/ubuntu/standard:2.0"
+    image = "aws/codebuild/standard:2.0"
     type = "LINUX_CONTAINER"
+    privileged_mode = true
 
     environment_variable {
       name = "AWS_DEFAULT_REGION"
@@ -75,6 +83,11 @@ resource "aws_codebuild_project" "main" {
     environment_variable {
       name = "IMAGE_TAG"
       value = "latest"
+    }
+
+    environment_variable {
+      name = "ECS_TASK_CONTAINER"
+      value = var.container_name
     }
   }
 

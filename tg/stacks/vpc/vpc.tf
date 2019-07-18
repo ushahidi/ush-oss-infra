@@ -46,21 +46,21 @@ module "vpc" {
 
   enable_s3_endpoint = true
 
-  enable_ssm_endpoint              = true
-  ssm_endpoint_private_dns_enabled = true
-  ssm_endpoint_security_group_ids  = [ data.aws_security_group.default.id ]
+  enable_ssm_endpoint              = false
+  # ssm_endpoint_private_dns_enabled = true
+  # ssm_endpoint_security_group_ids  = [ data.aws_security_group.default.id ]
 
-  enable_ec2_endpoint              = true
-  ec2_endpoint_private_dns_enabled = true
-  ec2_endpoint_security_group_ids  = [ data.aws_security_group.default.id ]
+  enable_ec2_endpoint              = false
+  # ec2_endpoint_private_dns_enabled = true
+  # ec2_endpoint_security_group_ids  = [ data.aws_security_group.default.id ]
 
-  enable_ecr_dkr_endpoint               = true
-  ecr_dkr_endpoint_private_dns_enabled  = true
-  ecr_dkr_endpoint_security_group_ids   = [ data.aws_security_group.default.id ]
+  enable_ecr_dkr_endpoint               = false
+  # ecr_dkr_endpoint_private_dns_enabled  = true
+  # ecr_dkr_endpoint_security_group_ids   = [ data.aws_security_group.default.id ]
 
-  enable_logs_endpoint              = true
-  logs_endpoint_private_dns_enabled = true
-  logs_endpoint_security_group_ids  = [ data.aws_security_group.default.id ]
+  enable_logs_endpoint              = false
+  # logs_endpoint_private_dns_enabled = true
+  # logs_endpoint_security_group_ids  = [ data.aws_security_group.default.id ]
 
   enable_nat_gateway = true
   single_nat_gateway = true

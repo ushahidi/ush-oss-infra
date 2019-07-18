@@ -22,7 +22,8 @@ terraform {
       "${get_terragrunt_dir()}/../product.tfvars",
       "${get_terragrunt_dir()}/../../product.tfvars",
       "${get_terragrunt_dir()}/../app.tfvars",
-      "${get_terragrunt_dir()}/terraform.tfvars"
+      "${get_terragrunt_dir()}/terraform.tfvars",
+      "${get_terragrunt_dir()}/secrets.tfvars"
     ]
   }
 }

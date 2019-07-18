@@ -10,16 +10,8 @@ resource "aws_security_group" "public_http_s" {
   vpc_id = data.aws_vpc.main.id
 
   ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "TCP"
-    cidr_blocks = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
-  }
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
+    from_port   = var.container_port
+    to_port     = var.container_port
     protocol    = "TCP"
     cidr_blocks = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
@@ -31,9 +23,7 @@ resource "aws_security_group" "public_http_s" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
-   
   }
-
 }
 
 resource "aws_iam_role" "fargate" {
@@ -62,27 +52,51 @@ resource "aws_iam_role_policy" "fargate_to_registry" {
 
   policy = <<EOF
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "ecr:GetAuthorizationToken",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "ecr:BatchCheckLayerAvailability",
-                "ecr:GetDownloadUrlForLayer",
-                "ecr:BatchGetImage"
-            ],
-            "Resource": "${aws_ecr_repository.main.arn}"
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetAuthorizationToken",
+        "logs:CreateLogStream",
+        "logs:CreateLogGroup",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchGetImage"
+      ],
+      "Resource": "${aws_ecr_repository.main.arn}"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "fargate_to_ssm" {
+  name = "ssm_parameter_policy"
+  role = aws_iam_role.fargate.id
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameters",
+        "ssm:GetParametersByPath"
+      ],
+      "Resource": [
+        "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${var.environment}/${var.product}/*"
+      ]
+    }
+  ]
 }
 EOF
 }
@@ -100,17 +114,28 @@ resource "aws_ecs_task_definition" "main" {
     "image": "${aws_ecr_repository.main.repository_url}:latest",
     "portMappings": [
       {
-        "containerPort": 80,
-        "hostPort": 80,
+        "containerPort": ${var.container_port},
+        "hostPort": ${var.container_port},
         "protocol": "tcp"
       }
-    ]
+    ],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/${var.environment}/${var.product}/${var.app}/${var.name}",
+        "awslogs-region": "${var.aws_region}",
+        "awslogs-stream-prefix": "[${var.container_name}]"
+      }
+    },
+    "environment": ${jsonencode(var.container_environment)},
+    "secrets": ${jsonencode(var.container_environment_secrets)}
   }
 ]
 DEF
 
   requires_compatibilities = [ "FARGATE" ]
 
+  task_role_arn = aws_iam_role.fargate.arn
   execution_role_arn = aws_iam_role.fargate.arn
 
   tags = {
@@ -137,8 +162,6 @@ resource "aws_ecs_service" "main" {
   desired_count = 1
   launch_type = "FARGATE"
 
-  # iam_role = ""
-
   network_configuration {
     subnets = data.aws_subnet.main.*.id
     security_groups = [ aws_security_group.public_http_s.id ]
@@ -148,7 +171,7 @@ resource "aws_ecs_service" "main" {
   load_balancer {
     target_group_arn = aws_alb_target_group.main.arn
     container_name = var.container_name
-    container_port = "80"
+    container_port = var.container_port
   }
 }
 
@@ -175,13 +198,17 @@ data "aws_route53_zone" "main" {
 
 resource "aws_alb_target_group" "main" {
   name        = "${var.app}-${var.name}"
-  port        = 80
+  port        = var.container_port
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.main.id
   target_type = "ip"
 
   health_check {
     enabled   = true
+    interval  = 10
+    path = "/"
+    port = "traffic-port"
+    protocol = "HTTP"
   }
 
   tags = {
